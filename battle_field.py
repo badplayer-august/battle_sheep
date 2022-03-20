@@ -25,7 +25,7 @@ class battle_sheep_field:
             ],
         ]
         connect_cell = set()
-        i, j = np.random.randint(0, 12, 2)
+        i, j = np.random.randint(5, 7, 2)
         self.field[i][j] = -1
         for di, dj in dir[i%2]:
             print(di, dj)
@@ -71,9 +71,12 @@ class battle_sheep_field:
 
 
         print(self.field)
-        fig, ax = plt.subplots()
-        ax.scatter(free_x, free_y)
-        ax.scatter(wall_x, wall_y)
+        fig, ax = plt.subplots() 
+        ax.scatter(free_y, free_x, s=500)
+        ax.scatter(wall_y, wall_x, s=500)
+        ax.set_aspect('equal')
+        ax.invert_yaxis()
+        plt.tight_layout()
         plt.show()
 
 
