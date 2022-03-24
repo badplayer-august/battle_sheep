@@ -30,11 +30,23 @@ class BattleSheepMove:
 
     def __repr__(self):
         if self.i == -1 and self.j == -1:
-            return f'[Pass] player:{self.move_player}'
+            return '[Pass] player:{:1d}'.format(
+                self.move_player,
+            )
         elif self.d == -1:
-            return f'[Init] player:{self.move_player} i:{self.i} j:{self.j}'
+            return '[Init] player:{:1d} i:{:2d} j:{:2d}'.format(
+                self.move_player,
+                self.i,
+                self.j,
+            )
         else: 
-            return f'[Move] player:{self.move_player} i:{self.i} j:{self.j} d:{self.d} m:{self.m}'
+            return '[Move] player:{:1d} i:{:2d} j:{:2d} d:{:2d} m:{:2d}'.format(
+                self.move_player,
+                self.i,
+                self.j,
+                self.d,
+                self.m,
+            )
 
 class BattleSheepState:
     
@@ -57,7 +69,16 @@ class BattleSheepState:
             return False
 
         if move.d == -1 and self.board[move.i][move.j] == 0:
-            return True
+            for d in range(6):
+                new_i = move.i + direction[move.i&1][d][0]
+                new_j = move.j + direction[move.i&1][d][1]
+                if not (0 <= new_i < self.board_size):
+                    return True
+                if not (0 <= new_j < self.board_size):
+                    return True
+                if self.board[new_i][new_j] == -1:
+                    return True
+            return False
 
         if move.m >= self.sheep_state[move.i][move.j]:
             return False
@@ -146,7 +167,7 @@ class BattleSheepState:
             return BattleSheepState(new_board, new_sheep_state, next_move_player)
 
         if not self.is_move_legal(move):
-            raise ValueError('illegal move')
+            raise ValueError('illegal move:\n{}'.format(move))
 
         if move.d == -1:
             new_i, new_j = move.i, move.j
@@ -161,15 +182,15 @@ class BattleSheepState:
 
     def get_legal_actions(self):
         indices = np.array(np.where(self.board == self.next_move_player)).T
+        legal_action = []
 
         if len(indices) == 0:
             indices = np.array(np.where(self.board == 0)).T
-            return [
-                BattleSheepMove(self.next_move_player, i, j)
-                for i, j in indices
-            ]
-
-        legal_action = []
+            for i, j in indices:
+                action = BattleSheepMove(self.next_move_player, i, j)
+                if self.is_move_legal(action):
+                    legal_action.append(action)
+            return legal_action
 
         for i, j in indices:
             for d in range(6):
@@ -187,7 +208,8 @@ class BattleSheepState:
 if __name__ == '__main__':
     state = np.zeros((12, 12), dtype='int32')
     sheep_state = np.zeros((12, 12), dtype='int32')
-    test = BattleSheepState(state, sheep_state, 2)
+    player = np.random.randint(1, 5)
+    test = BattleSheepState(state, sheep_state, player)
     while not test.is_game_over():
         legal_action = np.random.choice(test.get_legal_actions(), 1)
         print(legal_action[0])
