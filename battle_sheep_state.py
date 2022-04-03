@@ -1,9 +1,11 @@
+import time
 import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-# class Cell:
-#     def __init__(self, val, sheep_val):
-#         self.val = val
-#         self.sheep_val = sheep_val
+get_legal_actions_time = 0
+move_time = 0
 
 direction = [
     # row is even
@@ -49,96 +51,61 @@ class BattleSheepMove:
             )
 
 class BattleSheepState:
-    
-    player = [i for i in range(1, 5)]
-
     def __init__(self, state, sheep_state, next_move_player=1):
-        self.board = state
+        self.board = np.array(state)
         self.sheep_state = sheep_state
         self.board_size = state.shape[0]
         self.next_move_player = next_move_player
-
-    def is_move_legal(self, move):
-#         if move.move_player != self.next_move_player:
-#             return False
-
-        if not (0 <= move.i < self.board_size):
-            return False
-
-        if not (0 <= move.j < self.board_size):
-            return False
-
-        if move.d == -1 and self.board[move.i][move.j] == 0:
-            for d in range(6):
-                new_i = move.i + direction[move.i&1][d][0]
-                new_j = move.j + direction[move.i&1][d][1]
-                if not (0 <= new_i < self.board_size):
-                    return True
-                if not (0 <= new_j < self.board_size):
-                    return True
-                if self.board[new_i][new_j] == -1:
-                    return True
-            return False
-
-        if move.m >= self.sheep_state[move.i][move.j]:
-            return False
-
-        new_i = move.i + direction[move.i&1][move.d][0]
-        new_j = move.j + direction[move.i&1][move.d][1]
-
-        if not (0 <= new_i < self.board_size):
-            return False
-
-        if not (0 <= new_j < self.board_size):
-            return False
-
-        if self.board[new_i][new_j] != 0:
-            return False
-
-        return move.move_player == self.board[move.i][move.j]
+        self.dir = np.ones((6, 12, 12))*-1
+        self.dir[0,2::2,1:] = self.board[1:11:2,:-1]
+        self.dir[0,1::2,:] = self.board[::2,:]
+        self.dir[1,2::2,:] = self.board[1:11:2,:]
+        self.dir[1,1::2,:-1] = self.board[::2,1:]
+        self.dir[2,:,1:] = self.board[:,:-1]
+        self.dir[3,:,:-1] = self.board[:,1:]
+        self.dir[4,::2,1:] = self.board[1::2,:-1]
+        self.dir[4,1:-2:2,:] = self.board[2::2,:]
+        self.dir[5,::2,:] = self.board[1::2,:]
+        self.dir[5,1:-2:2,:-1] = self.board[2::2,1:]
 
     @property
     def availiable_player(self):
+        availiable = np.zeros(4)
 
-        availiable = np.ones(4, dtype='bool')
+        vaild_cell = (self.dir == 0).any(axis=0) & (self.sheep_state != 1)
 
-        for player in self.player:
-            indices = np.array(np.where(self.board == player)).T
-            for i, j in indices:
-                availiable[player - 1] = 0
-                for d in range(6):
-                    if self.is_move_legal(BattleSheepMove(player, i, j, d, 1)):
-                        availiable[player - 1] = 1
-                        break
-                if availiable[player - 1]:
-                    break
+        for player in range(1, 5):
+            player_cell = self.board == player
+            availiable[player - 1] = (player_cell.any() == False) | (player_cell & vaild_cell).any()
 
         return availiable    
 
     @property
     def game_current_score(self):
-        score = np.zeros(4, dtype='int32')
-        group = np.zeros((12, 12))
-        group_index = 1
-        for player in self.player:
-            indices = np.array(np.where(self.board == player)).T
-            score[player - 1] = 3*len(indices)
-            for i, j in indices:
+        disjoint_set = [[-1 for _ in range(12)] for _ in range(12)]
+        for i in range(12):
+            for j in range(12):
                 for d in range(3):
-                    new_i, new_j = i + direction[i&1][d][0], j + direction[i&1][d][1]
-                    if not (0 <= new_i < self.board_size):
-                        continue
-                    if not (0 <= new_j < self.board_size):
-                        continue
-                    if self.board[new_i][new_j] == player:
-                        group[i][j] = group[new_i][new_j]
-                        break
-                if group[i][j] == 0:
-                    group[i][j] = group_index
-                    group_index += 1
-            group_unique, count = np.unique(group[self.board == player], return_counts=True)
-            if len(count):
-                score[player - 1] += np.max(count)
+                    if self.dir[d][i][j] == self.board[i][j]:
+                        value = disjoint_set[i][j]
+                        new_i, new_j = i + direction[i&1][d][0], j + direction[i&1][d][1]
+
+                        while disjoint_set[new_i][new_j] >= 0:
+                            new_i, new_j = disjoint_set[new_i][new_j] & 15, disjoint_set[new_i][new_j] >> 4
+
+                        if value < 0:
+                            disjoint_set[new_i][new_j] += value
+                            disjoint_set[i][j] = (new_i | (new_j << 4)) 
+                        elif value != (new_i | (new_j << 4)):
+                            disjoint_set[value & 15][value >> 4] += disjoint_set[new_i][new_j]
+                            disjoint_set[new_i][new_j] = value
+
+        disjoint_set = np.array(disjoint_set)
+        score = []
+        for player in range(1, 5):
+            score.append((self.board==player).sum()*3)
+            if score[player - 1]:
+                score[player - 1] -= disjoint_set[self.board==player].min()
 
         return score
 
@@ -146,17 +113,10 @@ class BattleSheepState:
         return not self.availiable_player.any()
 
     def walk(self, i, j, d):
-        while True:
-            new_i, new_j = i + direction[i&1][d][0], j + direction[i&1][d][1]
-            if not (0 <= new_i < self.board_size):
-                return i, j
-            if not (0 <= new_j < self.board_size):
-                return i, j
-            if self.board[new_i][new_j] != 0:
-                return i, j
+        while self.dir[d][i][j] == 0:
+            i, j = i + direction[i&1][d][0], j + direction[i&1][d][1]
 
-            i = new_i
-            j = new_j
+        return i, j
 
     def move(self, move):
         new_board = np.copy(self.board)
@@ -165,9 +125,6 @@ class BattleSheepState:
         
         if move.i == -1 and move.j == -1:
             return BattleSheepState(new_board, new_sheep_state, next_move_player)
-
-        if not self.is_move_legal(move):
-            raise ValueError('illegal move:\n{}'.format(move))
 
         if move.d == -1:
             new_i, new_j = move.i, move.j
@@ -181,37 +138,74 @@ class BattleSheepState:
         return BattleSheepState(new_board, new_sheep_state, next_move_player)
 
     def get_legal_actions(self):
-        indices = np.array(np.where(self.board == self.next_move_player)).T
+        player_cell = self.board == self.next_move_player
         legal_action = []
 
-        if len(indices) == 0:
-            indices = np.array(np.where(self.board == 0)).T
-            for i, j in indices:
-                action = BattleSheepMove(self.next_move_player, i, j)
-                if self.is_move_legal(action):
-                    legal_action.append(action)
+        if player_cell.any() == False:
+            legal_cell = (self.board == 0) & (self.dir == -1).any(axis=0)
+            indices = np.where(legal_cell)
+            for i, j in zip(indices[0], indices[1]):
+                legal_action.append(BattleSheepMove(self.next_move_player, i, j))
             return legal_action
 
-        for i, j in indices:
-            for d in range(6):
+        for d in range(6):
+            legal_direction = player_cell & (self.dir[d] == 0)
+            indices = np.where(legal_direction)
+            for i, j in zip(indices[0], indices[1]):
                 for m in range(1, self.sheep_state[i][j]):
-                    action = BattleSheepMove(self.next_move_player, i, j, d, m)
-                    if not self.is_move_legal(action):
-                        break
-                    legal_action.append(action)
-
+                    legal_action.append(BattleSheepMove(self.next_move_player, i, j, d, m))
+        
         if len(legal_action):
             return legal_action
 
         return [BattleSheepMove(self.next_move_player)]
+    
+    def render_board(self, board):
+        data = []
+        for i in range(12):
+            for j in range(12):
+                if i&1:
+                    data.append([i, j+0.5, board[i][j]])
+                else:
+                    data.append([i, j, board[i][j]])
+        df = pd.DataFrame(data, columns=['y', 'x', 'label'])
+        return sns.scatterplot(data=df, x='x', y='y', hue='label')
+
+    def render(self, show_dir=False):
+        plot = self.render_board(self.board)
+        for i in range(12):
+            for j in range(12):
+                plot.annotate(str(self.sheep_state[i][j]), xy=(j+0.5 if i&1 else j, i), horizontalalignment='center')
+        plt.gca().invert_yaxis()
+        plt.show()
+        if show_dir:
+            for d in self.dir:
+                self.render_board(d)
+                plt.gca().invert_yaxis()
+                plt.show()
+
+
+
 
 if __name__ == '__main__':
-    state = np.zeros((12, 12), dtype='int32')
-    sheep_state = np.zeros((12, 12), dtype='int32')
-    player = np.random.randint(1, 5)
-    test = BattleSheepState(state, sheep_state, player)
-    while not test.is_game_over():
-        legal_action = np.random.choice(test.get_legal_actions(), 1)
-        print(legal_action[0])
-        test = test.move(legal_action[0])
-    print(test.game_current_score)
+    for i in range(1):
+        state = np.zeros((12, 12), dtype='int32')
+        sheep_state = np.zeros((12, 12), dtype='int32')
+        player = np.random.randint(1, 5)
+        test = BattleSheepState(state, sheep_state, player)
+        while not test.is_game_over():
+            start = time.time()
+            temp = test.get_legal_actions()
+            end = time.time()
+            get_legal_actions_time += (end - start)
+            legal_action = np.random.choice(temp, 1)
+            print(test.game_current_score)
+            test.render(False)
+            print(legal_action[0])
+            start = time.time()
+            test = test.move(legal_action[0])
+            end = time.time()
+            move_time += (end - start)
+        print(test.game_current_score)
+    print('get_legal_actions_time: ', get_legal_actions_time)
+    print('move_time: ', move_time)
