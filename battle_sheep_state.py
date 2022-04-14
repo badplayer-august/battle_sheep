@@ -1,10 +1,12 @@
 import time
+import random
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 get_legal_actions_time = 0
+get_random_action = 0
 move_time = 0
 
 direction = [
@@ -188,7 +190,7 @@ class BattleSheepState:
 
 
 if __name__ == '__main__':
-    for i in range(1):
+    for i in range(10):
         state = np.zeros((12, 12), dtype='int32')
         sheep_state = np.zeros((12, 12), dtype='int32')
         player = np.random.randint(1, 5)
@@ -198,14 +200,25 @@ if __name__ == '__main__':
             temp = test.get_legal_actions()
             end = time.time()
             get_legal_actions_time += (end - start)
-            legal_action = np.random.choice(temp, 1)
-            print(test.game_current_score)
-            test.render(False)
-            print(legal_action[0])
             start = time.time()
-            test = test.move(legal_action[0])
+            action_num = len(temp)
+            randint = random.getrandbits(7)
+            while randint >= action_num:
+                randint = random.getrandbits(7)
+            legal_action = temp[randint]
+            # legal_action = np.random.choice(temp, 1)
+            end = time.time()
+            get_random_action += (end - start)
+#           print(test.game_current_score)
+#           test.render(False)
+#           print(legal_action[0])
+            start = time.time()
+            test = test.move(legal_action)
             end = time.time()
             move_time += (end - start)
         print(test.game_current_score)
+        print((test.game_current_score-np.min(test.game_current_score))/np.sum(test.game_current_score - np.min(test.game_current_score)))
+        print(np.exp(test.game_current_score)/np.sum(np.exp(test.game_current_score)))
     print('get_legal_actions_time: ', get_legal_actions_time)
+    print('get_random_action_time:', get_random_action)
     print('move_time: ', move_time)

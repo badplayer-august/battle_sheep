@@ -9,7 +9,7 @@ class MCTS_NODE:
         self.children = []
 
         self._n_visits = 0
-        self._results = {}
+        self._results = np.zeros(4)
         self._untried_actions = None
 
     @property
@@ -20,7 +20,7 @@ class MCTS_NODE:
 
     @property
     def X(self):
-        exp_result = np.exp(self._results/self.n)
+        exp_result = np.exp(self._results - np.min(self._results))
         softmax_result = exp_result/np.sum(exp_result)
         return softmax_result[self.parent.state.next_to_move]
 
@@ -56,7 +56,7 @@ class MCTS_NODE:
 
     def backpropagate(self, result):
         self._n_visits += 1.
-        self._results += result.
+        self._results += result
         if self.parent:
             self.parent.backpropagate(result)
 
