@@ -16,7 +16,7 @@ import random
 def InitPos(mapStat):
     mapStat = np.array(mapStat)
     sheepStat = np.zeros((12, 12))
-    sheepStat[mapStat] = 16
+    sheepStat[mapStat != 0] = 16
     sheepStat = list(sheepStat)
     playerID = 1
     while (mapStat == playerID).any():
