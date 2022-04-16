@@ -1,4 +1,4 @@
-import MCTS_Battle_Sheep
+from MCTS_Battle_Sheep import*
 import STcpClient
 import numpy as np
 import random
@@ -14,16 +14,19 @@ import random
 
 
 def InitPos(mapStat):
-    mapStat = np.array(mapStat)
-    sheepStat = np.zeros((12, 12))
-    sheepStat[mapStat != 0] = 16
+    mapStat = np.array(mapStat).astype('int32')
+    print("MapState",mapStat)
+    
+    sheepStat = np.zeros((12, 12),dtype='int32')
+    sheepStat[mapStat>0] = 16
     sheepStat = list(sheepStat)
+    print("SheepState",sheepStat)
     playerID = 1
     while (mapStat == playerID).any():
         playerID += 1
     
     action = MCTS(MCTS_NODE(BattleSheepState(mapStat, sheepStat, playerID))).best_action(1000, c_param=1.4, h=10)
-    return [action.i, action.j]
+    return [action.j, action.i]
 
 
 '''
@@ -45,8 +48,8 @@ def InitPos(mapStat):
               5  6
 '''
 def GetStep(playerID, mapStat, sheepStat):
-    action = MCTS(MCTS_NODE(BattleSheepState(np.array(mapStat), list(sheepStat), playerID))).best_action(1000, c_param=1.4, h=10)
-    return [(action.i, action.j), action.m, action.d]
+    action = MCTS(MCTS_NODE(BattleSheepState(np.array(mapStat).astype('int32'), list(sheepStat), playerID))).best_action(1000, c_param=1.4, h=10)
+    return [(action.j, action.i), action.m, action.d]
 
 
 # player initial
