@@ -87,7 +87,7 @@ class BattleSheepState:
         for i in range(12):
             for j in range(12):
                 for d in range(3):
-                    if self.board[i][j]!=-1 and self.dir[d][i][j] == self.board[i][j]:
+                    if self.board[i][j] != -1 and self.dir[d][i][j] == self.board[i][j]:
                         value = disjoint_set[i][j]
                         new_i, new_j = i + direction[i&1][d][0], j + direction[i&1][d][1]
 
