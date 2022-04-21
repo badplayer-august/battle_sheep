@@ -49,7 +49,7 @@ def InitPos(mapStat):
 '''
 def GetStep(playerID, mapStat, sheepStat):
     action = MCTS(MCTS_NODE(BattleSheepState(np.array(mapStat, dtype='int32').T, list(np.array(sheepStat, dtype='int32').T), playerID))).best_action(1000, c_param=1.4, h=10)
-    return [(action.j, action.i), action.m, action.d]
+    return [(action.j, action.i), action.m, action.d + 1]
 
 
 # player initial
