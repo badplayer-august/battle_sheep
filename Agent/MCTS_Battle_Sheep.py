@@ -143,7 +143,9 @@ class BattleSheepState:
         legal_action = []
 
         if player_cell.any() == False:
-            legal_cell = (self.board == 0) & (self.dir == -1).any(axis=0)
+            mask = np.zeros((12, 12), dtype='bool')
+            mask[1:11, 1:11] = True
+            legal_cell = (self.board == 0) & (self.dir == -1).any(axis=0) & mask
             indices = np.where(legal_cell)
             for i, j in zip(indices[0], indices[1]):
                 legal_action.append(BattleSheepMove(self.next_move_player, i, j))
