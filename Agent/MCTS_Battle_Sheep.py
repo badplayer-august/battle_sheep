@@ -253,6 +253,21 @@ class MCTS:
         self.root = node
 
     def best_action(self, simulations_number=None, c_param=1.4, h=-1):
+        if simulations_number == None:
+            start = time.time()
+            for _ in range(10):
+                v = self._tree_policy(c_param)
+                reward = v.rollout(h)
+                v.backpropagate(reward)
+            avg = time.time() - start
+            number = np.floor((4.8-avg)/avg)
+            for _ in range(number*10):
+                v = self._tree_policy(c_param)
+                reward = v.rollout(h)
+                v.backpropagate(reward)
+            print(number*10 + 10)
+            return self.root.best_move()
+                
         for _ in range(0, simulations_number):            
             v = self._tree_policy(c_param)
             reward = v.rollout(h)
