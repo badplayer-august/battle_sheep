@@ -261,11 +261,11 @@ class MCTS:
                 v.backpropagate(reward)
             avg = time.time() - start
             number = np.floor((4.8-avg)/avg)
-            print(number*10 + 10)
             for _ in range(number*10):
                 v = self._tree_policy(c_param)
                 reward = v.rollout(h)
                 v.backpropagate(reward)
+            print(number*10 + 10)
             return self.root.best_move()
                 
         for _ in range(0, simulations_number):            
