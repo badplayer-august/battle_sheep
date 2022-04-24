@@ -36,7 +36,7 @@ class BattleSheepMove:
                 self.i,
                 self.j,
             )
-        else: 
+        else:
             return '[Move] player:{:1d} i:{:2d} j:{:2d} d:{:2d} m:{:2d}'.format(
                 self.move_player,
                 self.i,
@@ -79,7 +79,7 @@ class BattleSheepState:
             player_cell = self.board == player
             availiable[player - 1] = (player_cell.any() == False) | (player_cell & vaild_cell).any()
 
-        return availiable    
+        return availiable
 
     @property
     def game_current_score(self):
@@ -96,7 +96,7 @@ class BattleSheepState:
 
                         if value < 0:
                             disjoint_set[new_i][new_j] += value
-                            disjoint_set[i][j] = (new_i | (new_j << 4)) 
+                            disjoint_set[i][j] = (new_i | (new_j << 4))
                         elif value != (new_i | (new_j << 4)):
                             disjoint_set[value & 15][value >> 4] += disjoint_set[new_i][new_j]
                             disjoint_set[new_i][new_j] = value
@@ -123,7 +123,7 @@ class BattleSheepState:
         new_board = np.copy(self.board)
         new_sheep_state = np.copy(self.sheep_state)
         next_move_player = (self.next_move_player&3) + 1
-        
+
         if move.i == -1 and move.j == -1:
             return BattleSheepState(new_board, new_sheep_state, next_move_player)
 
@@ -157,7 +157,7 @@ class BattleSheepState:
             for i, j in zip(indices[0], indices[1]):
                 for m in range(1, self.sheep_state[i][j]):
                     legal_action.append(BattleSheepMove(self.next_move_player, i, j, d, m))
-        
+
         if len(legal_action):
             return legal_action
 
@@ -241,7 +241,7 @@ class MCTS_NODE:
         ]
         return self.children_move[np.argmax(choices_weights)]
 
-    def rollout_policy(self, possible_moves):        
+    def rollout_policy(self, possible_moves):
         possible_moves_num = len(possible_moves)
         randint = random.getrandbits(7)
         while randint >= possible_moves_num:
@@ -254,21 +254,19 @@ class MCTS:
 
     def best_action(self, simulations_number=None, c_param=1.4, h=-1):
         if simulations_number == None:
-            start = time.time()
-            for _ in range(10):
+            t = 4.9
+            cnt = 0
+            while t > 0:
+                cnt += 1
+                start = time.time()
                 v = self._tree_policy(c_param)
                 reward = v.rollout(h)
                 v.backpropagate(reward)
-            avg = time.time() - start
-            number = np.floor((4.8-avg)/avg)
-            for _ in range(number*10):
-                v = self._tree_policy(c_param)
-                reward = v.rollout(h)
-                v.backpropagate(reward)
-            print(number*10 + 10)
+                t -= time.time() - start
+            print(cnt)
             return self.root.best_move()
-                
-        for _ in range(0, simulations_number):            
+
+        for _ in range(0, simulations_number):
             v = self._tree_policy(c_param)
             reward = v.rollout(h)
             v.backpropagate(reward)
